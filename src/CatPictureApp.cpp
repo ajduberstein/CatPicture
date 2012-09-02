@@ -1,6 +1,9 @@
 #include "cinder/app/AppBasic.h"
 #include "cinder/gl/gl.h"
+#include "cinder/gl/Texture.h"
+#include "cinder/ImageIo.h"
 #include "boost/date_time/posix_time/posix_time.hpp"
+#include "Resources.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -12,13 +15,15 @@ class CatPictureApp : public AppBasic {
 	void mouseDown( MouseEvent event );	
 	void update();
 	void draw();
+	void prepareSettings(Settings* settings);
   private:
 	  Surface* mySurface_; //Surface with pixel array
 
 	  //Track frames
-    int frame_number_;
+	int frame_number_;
 	boost::posix_time::ptime app_start_time_;
 
+	
 	struct triangle_info{
 		int height;
 		int base;
@@ -31,120 +36,126 @@ class CatPictureApp : public AppBasic {
 	static const int kTextureSize=1024; //Must be the next power of 2 bigger or equal to app dimensions
 
 	/**
-	 * Fill a rectangle with an argyle pattern
+	 * Draws rectangle on the canvas 
 	 *
-	 * Every space between (x1,y1) and (x2,y2) will be affected. The dimensions of the squares comprising the 
-	 * pieces of the argyle pattern are given by rect_with and rect_height
+	 * TODO
+	 *
+	 * Satisfies requirement A.1
+	 */
+	void placeRectangle(uint8_t* pixels, int x1, int y1, int x2, int y2, int rect_width, int rect_height, Color8u border);
+
+	/**
+	 * Places a bunch of lines forming an asterisk where the cursor clicks 
+	 *
+	 * TODO Describe the logic
+	 *
+	 * Satisfies requirement A.3
 	 *
 	 */
-	void tileWithRectangles(uint8_t* pixels, int x1, int y1, int x2, int y2, int rect_width, int rect_height, Color8u fill1, Color8u border1, Color8u fill2, Color8u border2);
-
 	void drawLine(uint8_t* pixels, int x1, int y1, int x2, int y2);
 
-	void placeTriangle(uint8_t* pixels, int x1, int y1, int x2, int y2, int rect_width, int rect_height, Color8u fill1, Color8u border1, Color8u fill2, Color8u border2);
+	/**
+	 * Draws a Sierpinski triangle on the surface
+	 *
+	 * TODO Describe the logic
+	 *
+	 * Satisfies requirement A.7
+	 *
+	 */
+	void placeTriangle(uint8_t* pixels, int iterations);
 
+	/**
+	 * Places a circle where the click occurs
+	 *
+	 * TODO Describe the logic
+	 *
+	 */
 	void placeCircle(uint8_t* pixels, int x1, int y1, int x2, int y2, int rect_width, int rect_height, Color8u fill1, Color8u border1, Color8u fill2, Color8u border2);
 
+	/**
+	 * Blurs edges of image
+	 *
+	 * TODO Describe the logic
+	 *
+	 */
 	void blurEdges(uint8_t* image_to_blur, uint8_t* blur_pattern);
 
-	void animate(uint8_t* image_to_animate, uint8_t* animation);
+	/**
+	*	Returns x value from pixel array
+	*/
+	int xConverter(uint8_t* pixels);
+	
+	/**
+	*	Returns y value from pixel array
+	*/
+	int yConverter(uint8_t* pixels);
 };
 
-void tileWithRectangles(uint8_t* pixels, int x1, int y1, int x2, int y2, int rect_width, int rect_height, Color8u fill1, Color8u border1, Color8u fill2, Color8u border2){
-	int startx = (x1 < x2) ? x1 : x2;
-	int endx = (x1 < x2) ? x2 : x1;
-	int starty = (y1 < y2) ? y1 : y2;
-	int endy = (y1 < y2) ? y2 : y1;
-	
-	//Do some bounds checking
-	if(endx < 0) return; //Visible part of rectangle is off screen
-	if(endy < 0) return; //Visible part of rectangle is off screen
-	if(startx >= kAppWidth) return; //Visible part of rectangle is off screen
-	if(starty >= kAppHeight) return; //Visible part of rectangle is off screen
-	if(endx >= kAppWidth) endx = kAppWidth-1;
-	if(endy >= kAppHeight) endy = kAppHeight-1;
-	
-	
-	//Variable creation can be slow, so moved it outside the loop
-	Color8u c = Color8u(255,0,0);
-	int y_distance_from_start;
-	int rects_tall;
-	int rect_row;
-	int y;
+void CatPictureApp::prepareSettings(Settings* settings){
+	(*settings).setWindowSize(kAppWidth,kAppHeight);
+	(*settings).setResizable(false);
+}
+
+void CatPictureApp::placeRectangle(uint8_t* pixels, int startx, int starty, int endx, int endy, int rect_width, int rect_height, Color8u border){
+	int colorNoter = 0;
+	int currentY;
+	int currentX;
 	bool in_horiz_border;
-	
+	bool in_vert_border; 
 	int x_distance_from_start;
+	int y_distance_from_start;
+	int rectHeight = endy - starty;
+	int rectLength = endx - startx;
 	int rects_along;
 	int rect_col;
-	int x;
-	bool in_vert_border;
-	
-	//I do the loops with x on the inside because this incurs less cache misses
-	for(y=((starty >= 0) ? starty : 0); y<=endy; y++){
-		y_distance_from_start = y - starty;
-		rects_tall = y_distance_from_start/rect_height; //How many squares down from the top of the board?
-		
-		rect_row = y_distance_from_start%rect_height;
-		in_horiz_border = (rect_row == 0 || rect_row == rect_height-1);
-		
-		for(x=((startx >= 0) ? startx : 0); x<=endx; x++){
-			x_distance_from_start = x - startx;
-			rects_along = x_distance_from_start/rect_width; //How many squares along from the left of the board?
-			
-			rect_col = x_distance_from_start%rect_width;
+	int rects_tall;
+	int rect_row;
+
+	for (currentY = starty; currentY<=endy; currentY++){
+		y_distance_from_start = currentY - starty;
+		rects_tall = y_distance_from_start%rectHeight;
+		rect_row = y_distance_from_start%rectLength;
+		in_horiz_border = (rect_row == 0 || rect_row == rect_height-1);			
+		for(currentX = startx; currentX <= endx; currentX++){
+			x_distance_from_start = currentX - starty;
+			rects_along = x_distance_from_start/rect_width;
+
+			rect_col = x_distance_from_start/rect_width;
 			in_vert_border = (rect_col == 0 || rect_col == rect_width-1);
-			
-			//This is what makes the checkerboard pattern.
-			if((rects_tall + rects_along)%2 == 0){
-				//I originally had c = fill1, but it turns out that is REALLY slow. Probably causes a copy
-				// constructor to get called!
-				c.r = fill1.r;
-				c.b = fill1.b;
-				c.g = fill1.g;
-				if(in_horiz_border || in_vert_border){
-					c.r = border1.r;
-					c.b = border1.b;
-					c.g = border1.g;
-				}
-			} else {
-				c.r = fill2.r;
-				c.b = fill2.b;
-				c.g = fill2.g;
-				if(in_horiz_border || in_vert_border){
-					c.r = border2.r;
-					c.b = border2.b;
-					c.g = border2.g;
-				}
+			if(in_horiz_border || in_vert_border){
+				pixels[3*(currentX + currentY*kTextureSize)] = border.r;
+				pixels[3*(currentX + currentY*kTextureSize)+1] = border.g;
+				pixels[3*(currentX + currentY*kTextureSize)+2] = border.b;
 			}
-			pixels[3*(x + y*kTextureSize)] = c.r;
-			pixels[3*(x + y*kTextureSize)+1] = c.g;
-			pixels[3*(x + y*kTextureSize)+2] = c.b;
+		}
+	}
+}
+	
+
+
+void CatPictureApp::setup()
+{
+	mySurface_ = new Surface(kTextureSize,kTextureSize,false);
+	uint8_t* dataArray = (*mySurface_).getData();
+	for (int i = 0; i < 1000; i+=10){
+		for (int j = 0; j < 500; j += 50){
+			placeRectangle(dataArray,5+i,10+j,100+i,100+j*2,2,90,Color8u(120,129,29));
 		}
 	}
 }
 
-
-void HW01App::setup()
+void CatPictureApp::mouseDown( MouseEvent event )
 {
 }
 
-void HW01App::mouseDown( MouseEvent event )
+void CatPictureApp::update()
 {
 }
 
-void HW01App::update()
+void CatPictureApp::draw()
 {
-	uint8_t* dataArray = (*mySurface_).getData();
-	Color8u fill1 = Color8u(128,128,192);
-	Color8u border1 = Color8u(192,192,255);
-	Color8u fill2 = Color8u(192,192,192);
-	Color8u border2 = Color8u(255,255,255);
+	// Draw the surface 
+	gl::draw(*mySurface_);
 }
 
-void HW01App::draw()
-{
-	// clear out the window with black
-	gl::clear( Color( 0, 0, 0 ) ); 
-}
-
-CINDER_APP_BASIC( HW01App, RendererGl )
+CINDER_APP_BASIC( CatPictureApp, RendererGl )
