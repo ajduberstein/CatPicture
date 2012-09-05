@@ -30,42 +30,37 @@ class CatPictureApp : public AppBasic {
 	static const int kTextureSize=1024; //Must be the next power of 2 bigger or equal to app dimensions
 		
 	/**
-	 * Draws rectangle on the canvas 
-	 *
-	 * TODO
-	 *
-	 * Satisfies requirement A.1
+	 * Places rectangles on a canvas using Dr. Brinkman's methodology.
+	 * Credit to Dr. Brinkman. Code viewable at https://github.com/brinkmwj/HW01/blob/master/src/HW01App.cpp.
 	 */
 	void placeRectangle(uint8_t* pixels, int x1, int y1, int x2, int y2, int rect_width, int rect_height, Color8u border);
 
+
+	/** Fulfills the rectangle requirement--draws a rectangle on the canvas*/
 	void drawSolidRectangle(uint8_t* pixels, int x1, int y1, int x2, int y2);
 
 	/**
-	 * Places a bunch of lines forming an asterisk where the cursor clicks 
-	 *
-	 * TODO Describe the logic
+	 * Places a line on the canvas
 	 *
 	 * Satisfies requirement A.3
-	 * TODO Implement
 	 */
 	void drawLine(uint8_t* pixels, int x1, int y1, int x2, int y2, Color8u fill);
+	
+	/**
+	* Draws a gradient background--fulfils gradient requirement
+	*/
 	void drawBackground(uint8_t* pixels, Color8u init_fill);
+	/**
+	* Draws a right triangle--fulfills no requirement
+	*/
 	void drawRightTriangle(uint8_t* pixels, int x1, int y1, int x2, int y2);
+	/*
+	* Draws a triangle using drawLine() method--fulfills triangle requirement
+	*/
 	void drawFullTriangle(uint8_t* pixels, int x1, int y1, int x2, int y2, int x3, int y3, Color8u fill);
 
 	/**
-	 * Places a circle where the click occurs
-	 *
-	 * TODO Describe the logic
-	 *
-	 */
-	void placeCircle(uint8_t* pixels, int x, int y, int radius);
-
-	/**
-	 * Blurs edges of image
-	 *
-	 * TODO Describe the logic
-	 *
+	 * Blurs image
 	 */
 	void blurEdges(uint8_t* image_to_blur);
 };
@@ -125,6 +120,7 @@ void CatPictureApp::drawSolidRectangle(uint8_t* pixels, int x1, int y1, int x2, 
 		}
 	}
 }
+
 void CatPictureApp::drawLine(uint8_t* pixels, int x1, int y1, int x2, int y2, Color8u fill)
 {
 	int current_point;
@@ -228,29 +224,30 @@ void CatPictureApp::drawBackground(uint8_t* pixels, Color8u init_fill){
 
 void CatPictureApp::setup()
 {
+	mySurface_ = new Surface(kTextureSize,kTextureSize,false);
 	uint8_t* dataArray = (*mySurface_).getData();
-	/*for (int i = 0; i < 1000; i+=10)
-	{
-		for (int j = 0; j < 500; j += 50)
-		{
-			placeRectangle(dataArray,5+i,10+j,100+i,100+j*2,2,90,Color8u(200,200,200));
-		}
-	}*/
-	//blurEdges(dataArray);
-	//drawBackground(dataArray, Color8u(0,0,0));
-	//drawSolidRectangle(dataArray,10,10,100,100);
-	//drawLine(dataArray,100,100,100,250, Color8u(60,60,60));
-	//drawRightTriangle(dataArray,250,250,500,500);
-	//blurEdges(dataArray);
+	drawBackground(dataArray,Color8u(0,0,0));
+//	blurEdges(dataArray);
+	drawSolidRectangle(dataArray,10,10,100,100);
 }
 
 void CatPictureApp::mouseDown( MouseEvent event )
 {
+	//Implementation of mouse interaction
+	uint8_t* dataArray = (*mySurface_).getData();
+	drawLine(dataArray,event.getX(),event.getY(),event.getX()+10,event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,event.getX(),event.getY(),event.getX()-10,event.getY()-10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,event.getX(),event.getY(),event.getX()+10,event.getY()-10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,event.getX(),event.getY(),event.getX()-10,event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,event.getX(),event.getY(),event.getX(),event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,event.getX(),event.getY(),event.getX(),event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,event.getX(),event.getY(),event.getX(),event.getY()-10,Color8u(rand()%100,rand()%100,rand()%100)); 
 }
 
 void CatPictureApp::update()
 {
-	/*param+=(rand()%100);
+	//Implementation of animation
+	param+=(rand()%100);
 	int random = rand()%5;
 	uint8_t* dataArray = (*mySurface_).getData();
 	wave_index = cos(param*PI/180)*100;
@@ -259,7 +256,7 @@ void CatPictureApp::update()
 	drawFullTriangle(dataArray, ceil(200+wave_index),200+random, ceil(275+wave_index)+random,300,300,ceil(200+wave_index), Color8u(120-wave_index,param,20));
 	if (param > 100){
 		param = 0;
-	}*/
+	}
 }
 
 void CatPictureApp::draw()
