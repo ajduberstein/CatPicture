@@ -63,6 +63,8 @@ class CatPictureApp : public AppBasic {
 	 * Blurs image
 	 */
 	void blurEdges(uint8_t* image_to_blur);
+	void checkWidth(int width);
+	void checkHeight(int height);
 };
 
 void CatPictureApp::prepareSettings(Settings* settings)
@@ -230,18 +232,39 @@ void CatPictureApp::setup()
 //	blurEdges(dataArray);
 	drawSolidRectangle(dataArray,10,10,100,100);
 }
-
+bool CatPictureApp::checkWidth(int width)
+{
+	if((width>kAppWidth)||(width<0)
+	return false;
+	else
+	return true;
+}
+bool CatPictureApp::checkHeight(int height)
+{
+	if((height>kAppHeight)||(height<0))
+	return false
+	else
+	return true;
+}
 void CatPictureApp::mouseDown( MouseEvent event )
 {
 	//Implementation of mouse interaction
+	//Mouse clicks too close to edge will cause crash.
+	//Instead of repeated calls toevent.getx and gety. storethe values
+	int x = event.getx();
+	int y = event.gety();
+	
+	//Check params before drawing lines
+	if(!(checkWidth&&checkHeight)) return;
+	
 	uint8_t* dataArray = (*mySurface_).getData();
-	drawLine(dataArray,event.getX(),event.getY(),event.getX()+10,event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX()-10,event.getY()-10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX()+10,event.getY()-10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX()-10,event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX(),event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX(),event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX(),event.getY()-10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x+10,y+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x-10,y-10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x+10,y-10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x-10,y+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x,y+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x,y+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x,y-10,Color8u(rand()%100,rand()%100,rand()%100)); 
 }
 
 void CatPictureApp::update()
