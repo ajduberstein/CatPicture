@@ -63,6 +63,8 @@ class CatPictureApp : public AppBasic {
 	 * Blurs image
 	 */
 	void blurEdges(uint8_t* image_to_blur);
+	void checkWidth(int width);
+	void checkHeight(int height);
 };
 
 void CatPictureApp::prepareSettings(Settings* settings)
@@ -70,8 +72,26 @@ void CatPictureApp::prepareSettings(Settings* settings)
 	(*settings).setWindowSize(kAppWidth,kAppHeight);
 	(*settings).setResizable(false);
 }
+
+//Moved setup to after prepare settings since it is called before draw()
+void CatPictureApp::setup()
+{
+	mySurface_ = new Surface(kTextureSize,kTextureSize,false);
+	uint8_t* dataArray = (*mySurface_).getData();
+	drawBackground(dataArray,Color8u(0,0,0));
+//	blurEdges(dataArray);
+	drawSolidRectangle(dataArray,10,10,100,100);
+}
+
 //Borrowed from Dr. Brinkman's code--this produces a very '80's texture on the back of the surface--fulfills no requirement, but it could be interesting.
-void CatPictureApp::placeRectangle(uint8_t* pixels, int startx, int starty, int endx, int endy, int rect_width, int rect_height, Color8u border)
+void CatPictureApp::placeRectangle(uint8_t* pixels,
+					int startx, 
+					int starty, 
+					int endx, 
+					int endy, 
+					int rect_width, 
+					int rect_height, 
+					Color8u border)
 {
 	int currentY;
 	int currentX;
@@ -85,6 +105,7 @@ void CatPictureApp::placeRectangle(uint8_t* pixels, int startx, int starty, int 
 	int rect_col;
 	int rects_tall;
 	int rect_row;
+	
 	for (currentY = starty; currentY<=endy; currentY++)
 	{
 		y_distance_from_start = currentY - starty;
@@ -107,7 +128,11 @@ void CatPictureApp::placeRectangle(uint8_t* pixels, int startx, int starty, int 
 	}
 }
 
-void CatPictureApp::drawSolidRectangle(uint8_t* pixels, int x1, int y1, int x2, int y2)
+void CatPictureApp::drawSolidRectangle(uint8_t* pixels, 
+					int x1, 
+					int y1, 
+					int x2, 
+					int y2)
 {
 	for (int j = y1; j < kTextureSize && j < y2; j++)
 	{
@@ -121,9 +146,18 @@ void CatPictureApp::drawSolidRectangle(uint8_t* pixels, int x1, int y1, int x2, 
 	}
 }
 
-void CatPictureApp::drawLine(uint8_t* pixels, int x1, int y1, int x2, int y2, Color8u fill)
+void CatPictureApp::drawLine(uint8_t* pixels, 
+				int x1, 
+				int y1, 
+				int x2, 
+				int y2, 
+				Color8u fill)
 {
 	int current_point;
+	
+	//If any x or y value is outside the acceptable range exit
+	if(!((checkWidth(x1)&&checkWidth(x2)&&checkHeight(y1)&&checkHeight(y2)))) return;
+	
 	//CASE 1 -- Vertical line
 	if (x1 == x2){
 		int y = min(y1,y2);
@@ -190,7 +224,11 @@ void CatPictureApp::blurEdges(uint8_t* image_to_blur)
 		}
 }
 
-void CatPictureApp::drawRightTriangle(uint8_t* pixels, int x1, int y1, int x2, int y2)
+void CatPictureApp::drawRightTriangle(uint8_t* pixels, 
+					int x1, 
+					int y1, 
+					int x2, 
+					int y2)
 {
 	for (int j = y1; j < kTextureSize && j < y2; j++)
 	{
@@ -204,7 +242,14 @@ void CatPictureApp::drawRightTriangle(uint8_t* pixels, int x1, int y1, int x2, i
 	}
 }
 
-void CatPictureApp::drawFullTriangle(uint8_t* pixels, int x1, int y1, int x2, int y2, int x3, int y3, Color8u fill)
+void CatPictureApp::drawFullTriangle(uint8_t* pixels, 
+					int x1, 
+					int y1, 
+					int x2, 
+					int y2, 
+					int x3, 
+					int y3, 
+					Color8u fill)
 {
 	drawLine(pixels,x1,y1,x3,y3,fill);
 	drawLine(pixels,x2,y2,x3,y3,fill);
@@ -222,26 +267,43 @@ void CatPictureApp::drawBackground(uint8_t* pixels, Color8u init_fill){
 		}
 }
 
-void CatPictureApp::setup()
+bool CatPictureApp::checkWidth(int width)
 {
-	mySurface_ = new Surface(kTextureSize,kTextureSize,false);
-	uint8_t* dataArray = (*mySurface_).getData();
-	drawBackground(dataArray,Color8u(0,0,0));
-//	blurEdges(dataArray);
-	drawSolidRectangle(dataArray,10,10,100,100);
+	if((width>kAppWidth)||(width<0)
+	return false;
+	else
+	return true;
+}
+
+bool CatPictureApp::checkHeight(int height)
+{
+	if((height>kAppHeight)||(height<0))
+	{
+	return false;
+	}
+	else
+	{
+	return true;
+	}
 }
 
 void CatPictureApp::mouseDown( MouseEvent event )
 {
 	//Implementation of mouse interaction
+	//Instead of repeated calls toevent.getx and gety. storethe values
+	int x = event.getx();
+	int y = event.gety();
+	
+	//Implemented a check method inside of the drawline() method.
+	//Clicking too close to the edge would cause program to crash.
 	uint8_t* dataArray = (*mySurface_).getData();
-	drawLine(dataArray,event.getX(),event.getY(),event.getX()+10,event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX()-10,event.getY()-10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX()+10,event.getY()-10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX()-10,event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX(),event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX(),event.getY()+10,Color8u(rand()%100,rand()%100,rand()%100)); 
-	drawLine(dataArray,event.getX(),event.getY(),event.getX(),event.getY()-10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x+10,y+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x-10,y-10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x+10,y-10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x-10,y+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x,y+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x,y+10,Color8u(rand()%100,rand()%100,rand()%100)); 
+	drawLine(dataArray,x,y,x,y-10,Color8u(rand()%100,rand()%100,rand()%100)); 
 }
 
 void CatPictureApp::update()
